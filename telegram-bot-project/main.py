@@ -1,5 +1,6 @@
 # Standard Modules
 from datetime import datetime as dt
+from time import sleep
 
 
 # Third Party Modules
@@ -11,6 +12,7 @@ from telebot.types import (CallbackQuery, InlineKeyboardButton,
 
 # Local Modules
 import bot_token
+import welcome_handler as w_handler
 
 
 # Bot Initialization
@@ -19,15 +21,14 @@ bot = TeleBot(bot_token.token)
 
 # Variables
 bot.w_file = "animation"
+bot.file_path = "static/w_animation.gif"
 
 
 @bot.message_handler(commands=["start"])
 def welcome(message: Message) -> None:
     
-    file_path = _choose_welcome_file()
-    
     if bot.w_file != "text":
-        with open(file_path, "rb") as file:
+        with open(bot.file_path, "rb") as file:
             if bot.w_file == "photo":
                 bot.send_photo(message.chat.id, file)
             elif bot.w_file == "sticker" or bot.w_file == "animated":
@@ -35,75 +36,17 @@ def welcome(message: Message) -> None:
             elif bot.w_file == "animation":
                 bot.send_animation(message.chat.id, file)
                 
-    msg_text = _prep_cmd_msg(message)
+    msg_text = w_handler.prep_cmd_msg(message)
     
     bot.send_message(message.chat.id, msg_text)
-
-
-def _choose_welcome_file() -> str:
-    
-    if bot.w_file == "photo":
-        file_path = "static/w_photo.jpg"
-    elif bot.w_file == "sticker":
-        file_path = "static/w_sticker.webp"
-    elif bot.w_file == "animated":
-        file_path = "static/w_anim_sticker.tgs"
-    elif bot.w_file == "animation":
-        file_path = "static/w_animation.gif"
-    else:
-        file_path = ""
-    
-    return file_path
     
 
 @bot.message_handler(["help"])
 def help(message: Message) -> None:
     
-    msg_text = _prep_cmd_msg(message)
+    msg_text = w_handler.prep_cmd_msg(message)
     
     bot.send_message(message.chat.id, msg_text)
-
-
-def _prep_cmd_msg(message: Message) -> str:
-    
-    msg_text = ""
-    
-    with open("static/texts.txt", "r", encoding="utf-8") as welcome_text:
-        lines = welcome_text.readlines()
-        
-        start = f"[{message.text[1:]}]\n"
-        stop = f"[{message.text}]\n"
-        
-        start_index = lines.index(start)
-        stop_index = lines.index(stop)
-        
-        for index in range(start_index, stop_index):
-            if start in lines[index] or stop in lines[index]:
-                continue
-            elif stop in lines[index]:
-                break
-            if "Доброе утро!" in lines[index]:
-                time_index = _check_time()
-                greetings = [greeting for greeting in lines[index].split("!")]
-                lines[index] = greetings[time_index] + "!\n"
-            msg_text += lines[index]
-            
-    return msg_text
-
-
-def _check_time() -> int:
-    
-    curr_time = dt.now()
-    curr_hour = curr_time.hour
-    
-    if 4 <= curr_hour < 12:
-        return 0
-    elif 12 <= curr_hour < 18:
-        return 1
-    elif 18 <= curr_hour < 22:
-        return 2
-    elif 22 <= curr_hour < 0 or 0 <= curr_hour < 4:
-        return 3
 
 
 @bot.message_handler(["config"])
@@ -120,7 +63,8 @@ def config(message: Message) -> None:
     text_key = InlineKeyboardButton(text="Только текст", 
                                     callback_data="text")
     
-    config_keyboard.add(photo_key, animation_key, sticker_key, text_key)
+    config_keyboard.add(photo_key, animation_key, 
+                        sticker_key, text_key)
     
     bot.send_message(message.chat.id, "Выберите тип приветствия!", 
                      reply_markup=config_keyboard)
@@ -148,28 +92,50 @@ def callback_query(call: CallbackQuery) -> None:
     
     if call.data == "photo":
         bot.w_file = "photo"
-        _send_done(call)
+        bot.file_path = "static/w_photo.jpg"
+        bot.send_message(call.message.chat.id, 
+                         "Отправьте мне фото в формате .JPG!")
+        bot.register_next_step_handler(call.message, _change_file, call.data)
+        
     if call.data == "animation":
         bot.w_file = "animation"
-        _send_done(call)
+        bot.file_path = "static/w_animation.gif"
+        bot.send_message(call.message.chat.id, 
+                         "Отправьте мне анимацию в формате .JPG!")
+        bot.register_next_step_handler(call.message, _change_file, call.data)
+
     if call.data == "sticker":
         _sticker_type(call.message)
+        
     if call.data == "text":
         bot.w_file = "text"
-        _send_done(call)
+        bot.register_next_step_handler(call.message,
+                                       w_handler.g_change_text)
     
     if call.data == "standard":
         bot.w_file = "sticker"
-        _send_done(call)
+        bot.file_path = "static/w_sticker.webp"
+        bot.send_message(call.message.chat.id, 
+                         "Отправьте мне стикер в формате .WEBP")
+        bot.register_next_step_handler(call.message, _change_file, call.data)
+
     if call.data == "animated":
         bot.w_file = "animated"
-        _send_done(call)
+        bot.file_path = "static/w_anim_sticker.tgs"
+        bot.send_message(call.message.chat.id, 
+                         "Отправьте мне стикер в формате .TGS")
+        bot.register_next_step_handler(call.message, _change_file, call.data)
 
 
 def _send_done(call: CallbackQuery) -> None:
     
     with open("static/done.webp", "rb") as sticker:
         bot.send_sticker(call.message.chat.id, sticker)
+        
+def _change_file(message: Message, call_data: str) -> None:
+
+    w_handler.write_file(bot, message, call_data,
+                         bot.file_path, bot_token.token)
 
 
 bot.polling(none_stop=True, interval=0)
