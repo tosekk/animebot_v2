@@ -110,13 +110,13 @@ def _file_prep_msg(bot: TeleBot, call_data: str, message: Message) -> None:
                          f"{files[0]} успешно установлен{ending[0]}!")
 
         
-def g_change_text(message: Message) -> None:
+def g_change_text(message: Message, bot: TeleBot) -> None:
     
     new_text = _g_text_prep(message.text)
     start = f"[start]\n"
     stop = f"[/start]\n"
     
-    with open("static/texts.txt", "r") as file:
+    with open("static/texts.txt", "r", encoding="utf-8") as file:
         lines = file.readlines()
         
         start_index = lines.index(start)
@@ -127,8 +127,10 @@ def g_change_text(message: Message) -> None:
     new_text.insert(0, lines[start_index])
     new_text.insert(1, lines[start_index + 1])
     
-    with open("static/texts.txt", "w") as file:
+    with open("static/texts.txt", "w", encoding="utf-8") as file:
         file.writelines(new_text + remaining_lines)
+    
+    bot.send_message(message.chat.id, "Текст был успешно изменен!")
 
         
 def _g_text_prep(text: str) -> list:
