@@ -1,0 +1,4 @@
+/__pycache__
+bot_token.py
+*.py[cod]
+*$py.class
