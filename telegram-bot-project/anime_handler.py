@@ -4,7 +4,6 @@ import requests
 
 # Third-party Modules
 from bs4 import BeautifulSoup
-from telebot.types import Message
 
 
 # Variables
