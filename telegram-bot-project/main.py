@@ -103,14 +103,13 @@ def _ask_change_text(message: Message) -> None:
 @bot.message_handler(["animesearch"])
 def animesearch(message: Message) -> None:
     
-    _ask_anime_title(message, _show_search_results)
+    _ask_anime_title(message, _select_anime_title,
+                     _show_search_results)
  
     
-def _show_search_results(message: Message) -> None:
+def _show_search_results(message: Message, search_results: list) -> None:
     
     bot.send_message(message.chat.id, "Обрабатываю ваш запрос...")
-    
-    search_results = anime_handler.search(message.text)
     
     msg_text = ""
     
