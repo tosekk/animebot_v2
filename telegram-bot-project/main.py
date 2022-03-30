@@ -103,11 +103,12 @@ def _ask_change_text(message: Message) -> None:
 @bot.message_handler(["animesearch"])
 def animesearch(message: Message) -> None:
     
-    _ask_anime_title(message, _select_anime_title,
-                     _show_search_results)
+    _ask_anime_title(message, _show_search_results)
  
     
-def _show_search_results(message: Message, search_results: list) -> None:
+def _show_search_results(message: Message) -> None:
+    
+    search_results = anime_handler.search(message.text)
     
     bot.send_message(message.chat.id, "Обрабатываю ваш запрос...")
     
@@ -257,12 +258,15 @@ def _show_anime_trailer(message: Message, anime_info: list) -> None:
                      disable_web_page_preview=False)
 
  
-def _ask_anime_title(message: Message, func1, func2) -> None:
+def _ask_anime_title(message: Message, func1, func2=None) -> None:
     
     bot.send_message(message.chat.id, 
                      "Напишите название аниме(на английском)")
     
-    bot.register_next_step_handler(message, func1, func2) 
+    if not func2:
+        bot.register_next_step_handler(message, func1)
+    else:
+        bot.register_next_step_handler(message, func1, func2) 
 
 
 def _select_anime_title(message: Message, func) -> None:
